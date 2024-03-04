@@ -17,6 +17,15 @@ import { LinearGradient } from "expo-linear-gradient";
 import Cast from "../components/cast";
 import MovieList from "../components/movieList";
 import Loading from "../components/loading";
+// import {} from "";
+import {
+  fallbackMoviePoster,
+  fetchMovieCredits,
+  fetchMovieDetails,
+  fetchSimilarMovies,
+  image500,
+} from "../api/moviedb";
+// ../api/moviedb
 
 var { width, height } = Dimensions.get("window");
 const ios = Platform.OS == "ios";
@@ -26,13 +35,36 @@ const MovieScreen = () => {
   const { params: item } = useRoute();
   const navigation = useNavigation();
   const [isFavourite, setIsFavourite] = useState(false);
-  const [cast, setCast] = useState([1, 2, 3, 4, 5]);
-  const [similarMovies, setSimilarMovies] = useState([1, 2, 3, 4, 5]);
+  const [cast, setCast] = useState([]);
+  const [similarMovies, setSimilarMovies] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [movie, setMovie] = useState({});
 
   let movieName = "The Last Hope";
 
-  useEffect(() => {}, [item]);
+  useEffect(() => {
+    setLoading(true);
+    getMovieDetails(item.id);
+    getMovieCredits(item.id);
+    getSimilarMovies(item.id);
+  }, [item]);
+
+  const getMovieDetails = async (id) => {
+    const data = await fetchMovieDetails(id);
+    if (data) setMovie(data);
+    setLoading(false);
+  };
+
+  const getMovieCredits = async (id) => {
+    const data = await fetchMovieCredits(id);
+    console.log("credits", data);
+    if (data?.cast) setCast(data.cast);
+  };
+
+  const getSimilarMovies = async (id) => {
+    const data = await fetchSimilarMovies(id);
+    if (data?.results) setSimilarMovies(data.results);
+  };
 
   return (
     <ScrollView
@@ -67,7 +99,9 @@ const MovieScreen = () => {
         ) : (
           <View>
             <Image
-              source={require("../assets/images/dummy.jpeg")}
+              source={{
+                uri: image500(movie?.poster_path) || fallbackMoviePoster,
+              }}
               style={{ width, height: height * 0.55 }}
             />
             <LinearGradient
@@ -88,31 +122,32 @@ const MovieScreen = () => {
       {/* movie details */}
       <View style={{ marginTop: -(height * 0.09) }} className="space-y-3">
         <Text className="text-white text-center text-3xl font-bold tracking-wider">
-          {movieName}
+          {movie?.title}
         </Text>
         {/* status, release, runtime */}
-        <Text className="text-neutral-400 font-semibold text-base text-center">
-          Released • 2020 • 170 min
-        </Text>
+        {movie?.id ? (
+          <Text className="text-neutral-400 font-semibold text-base text-center">
+            {movie?.status} • {movie?.release_date?.split("-")[0]} •{" "}
+            {movie?.runtime} min
+          </Text>
+        ) : null}
         {/* genres */}
         <View className="flex-row justify-center mx-4 space-x-2">
-          <Text className="text-neutral-400 font-semibold text-base text-center">
-            Action •
-          </Text>
-          <Text className="text-neutral-400 font-semibold text-base text-center">
-            Thrill •
-          </Text>
-          <Text className="text-neutral-400 font-semibold text-base text-center">
-            Comedy
-          </Text>
+          {movie?.genres?.map((genre, index) => {
+            let showDot = index + 1 != movie.genres.length;
+            return (
+              <Text
+                key={index}
+                className="text-neutral-400 font-semibold text-base text-center"
+              >
+                {genre?.name} {showDot ? " • " : null}
+              </Text>
+            );
+          })}
         </View>
         {/* description */}
         <Text className="text-neutral-400 mx-4 tracking-wide">
-          It is a long established fact that a reader will be distracted by the
-          readable content of a page when looking at its layout. The point of
-          using Lorem Ipsum is that it has a more-or-less normal distribution of
-          letters, as opposed to using 'Content here, content here', making it
-          look like readable English.
+          {movie?.overview}
         </Text>
       </View>
       {/* cast */}

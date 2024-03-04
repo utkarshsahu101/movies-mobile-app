@@ -1,5 +1,5 @@
 import { StatusBar } from "expo-status-bar";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Platform,
   SafeAreaView,
@@ -17,14 +17,45 @@ import TrendingMovies from "../components/trendingMovies";
 import MovieList from "../components/movieList";
 import { useNavigation } from "@react-navigation/native";
 import Loading from "../components/loading";
+import {
+  fetchTopRatedMovies,
+  fetchTrendingMovies,
+  fetchUpcomingMovies,
+} from "../api/moviedb";
 
 const ios = Platform.OS == "ios";
 const HomeScreen = () => {
-  const [trending, setTrending] = useState([1, 2, 3]);
-  const [upcoming, setUpcoming] = useState([1, 2, 3, 4, 5, 6, 7]);
-  const [toprated, setToprated] = useState([1, 2, 3]);
-  const [loading, setLoading] = useState(false);
+  const [trending, setTrending] = useState([]);
+  const [upcoming, setUpcoming] = useState([]);
+  const [toprated, setToprated] = useState([]);
+  const [loading, setLoading] = useState(true);
   const navigation = useNavigation();
+
+  useEffect(() => {
+    getTrendingMovies();
+    getUpcomingMovies();
+    getTopRatedMovies();
+  }, []);
+
+  const getTrendingMovies = async () => {
+    const data = await fetchTrendingMovies();
+    if (data?.results) setTrending(data.results);
+    setLoading(false);
+  };
+
+  // useEffect(() => {
+  //   if (trending.length) console.log("trending", trending);
+  // }, [trending]);
+
+  const getUpcomingMovies = async () => {
+    const data = await fetchUpcomingMovies();
+    if (data?.results) setUpcoming(data.results);
+  };
+
+  const getTopRatedMovies = async () => {
+    const data = await fetchTopRatedMovies();
+    if (data?.results) setToprated(data.results);
+  };
 
   return (
     <View className="flex-1 bg-neutral-800">
@@ -47,9 +78,13 @@ const HomeScreen = () => {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 10 }}
         >
-          <TrendingMovies data={trending} />
-          <MovieList title="Upcoming" data={upcoming} />
-          <MovieList title="Top Rated" data={toprated} />
+          {trending.length > 0 && <TrendingMovies data={trending} />}
+          {upcoming.length > 0 && (
+            <MovieList title="Upcoming" data={upcoming} />
+          )}
+          {toprated.length > 0 && (
+            <MovieList title="Top Rated" data={toprated} />
+          )}
         </ScrollView>
       )}
     </View>
